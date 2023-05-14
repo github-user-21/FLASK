@@ -13,7 +13,7 @@ app.config['SECRET_KEY'] = "secretkey"
 @app.route('/')
 
 def index():
-    first_name = "A"
+    first_name = "Aditya"
     stuff = "stuff"
     return render_template("index.html",first_name = first_name, stuff = stuff)
 
