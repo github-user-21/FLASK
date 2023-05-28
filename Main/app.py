@@ -1,9 +1,11 @@
-from flask import Flask, render_template,flash
-from wtforms.validators import DataRequired 
+from flask import Flask, render_template,flash,request
+from wtforms.validators import DataRequired, EqualTo, Length 
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField 
+from wtforms import StringField, SubmitField,PasswordField,BooleanField, ValidationError
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from flask_migrate import Migrate
+from werkzeug.security import generate_password_hash,check_password_hash
 
 # Create a Flask Instance
 app = Flask(__name__)
@@ -14,6 +16,7 @@ app.config['SECRET_KEY'] = "secretkey"
 
 # Initialize database
 db = SQLAlchemy(app)
+migrate = Migrate(app,db)
 
 # Create Model
 class Users(db.Model):
@@ -21,11 +24,20 @@ class Users(db.Model):
     name = db.Column(db.String(100),nullable = False)
     email = db.Column(db.String(100),nullable = False,unique = True)
     date_added = db.Column(db.DateTime,default = datetime.utcnow)
+    age = db.Column(db.Integer)
+    password_hash = db.Column(db.String(128))
+    # password_hash2
 
+    @property
+    def password(self):
+        raise AttributeError('password is not readable attribute')
 
-# Create String
-def __repr__(self):
-    return '<Name %r>' %self.name
+    @password.setter
+    def password(self,password):
+        self.password_hash = generate_password_hash(password)
+
+    def verify_password(self,password):
+        return check_password_hash(self.password_hash,password)
 
 #Create a route decorator
 
@@ -77,6 +89,9 @@ class NameForm(FlaskForm):
 class UserForm(FlaskForm):
     name = StringField("Name",validators= [DataRequired()])
     email = StringField("Email",validators= [DataRequired()])
+    age = StringField("Age",validators=[DataRequired()])
+    password_hash = PasswordField('Password', validators = [DataRequired(), EqualTo('password_hash2', message = 'Passwords must match')])
+    password_hash2 = PasswordField('Confirm Password',validators=[DataRequired()])
     submit = SubmitField("Submit")
 
 
@@ -97,18 +112,63 @@ def name():
 
 def add():
     name = None
-    our_user = None
     form = UserForm()
+    our_users = Users.query.order_by(Users.date_added)
     # Validate Form
     if form.validate_on_submit():
         user = Users.query.filter_by(email=form.email.data).first()
         if user is None:
-            user = Users(name = form.name.data,email = form.email.data)
+            # Hash Password!
+            hashed_pw = generate_password_hash(form.password_hash.data,"sha256")
+            user = Users(name = form.name.data,email = form.email.data,age=form.age.data, password_hash = hashed_pw)
             db.session.add(user)
             db.session.commit()
         name = form.name.data
         form.name.data = ''
         form.email.data = ''
+        form.age.data = ''
+        form.password_hash.data = ''
+
         flash("Form Submitted Successfully!!")
-        our_user = Users.query.order_by(Users.date_added)
-    return render_template('add.html',form = form,name = name,our_user = our_user)
+    return render_template('add.html',form = form,name = name, our_users = our_users)
+
+# Update Database Record
+@app.route('/update/<int:id>',methods=['GET','POST'])
+
+def update(id):
+    form = UserForm()
+    name_update = Users.query.get_or_404(id)
+    if request.method == 'POST':
+        name_update.name = request.form['name']
+        name_update.email = request.form['email']
+        name_update.age = request.form['age']
+        try:
+            db.session.commit()
+            flash("User Updated Successfully!")
+            return render_template("update.html",form = form,name_update = name_update)
+        except:
+             flash("Error! Try Again!")
+             return render_template("update.html",form = form,name_update = name_update)
+    else:
+        return render_template("update.html",form = form,name_update = name_update,id = id)
+    
+@app.route('/delete/<int:id>')
+
+def delete(id):
+    name = None
+    form = UserForm()
+    user_delete = Users.query.get_or_404(id)
+
+    try:
+        db.session.delete(user_delete)
+        db.session.commit()
+        our_users = Users.query.order_by(Users.date_added)
+        flash("User Deleted Successfully !")
+        return render_template("add.html",form = form,name = name, our_users = our_users)
+    
+    except:
+        flash("Oops! Error!!!")
+        return render_template("add.html",form = form,name = name, our_users = our_users)
+# Create String
+def __repr__(self):
+    return '<Name %r>' %self.name
