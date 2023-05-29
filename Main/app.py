@@ -80,9 +80,24 @@ def pagenotfound(e):
 def pagenotfound(e):
     return render_template("500.html"),500
 
+@app.route('/api',methods=["POST","GET"])
+def api():
+    favorite_character = {
+        "Robert Downey Jr." : "Iron Man",
+        "Tom Cruise" : "Ethan Hunt",
+        "Johnny Depp" : "Captain Jack Sparrow"
+    }
+    return favorite_character
+    # return 
+
 # Create Form Class
 class NameForm(FlaskForm):
     name = StringField("Name",validators= [DataRequired()])
+    submit = SubmitField("Submit")
+
+class PasswordForm(FlaskForm):
+    email = StringField("What is your Email ?",validators= [DataRequired()])
+    password_hash = PasswordField("What is your Password ?",validators= [DataRequired()])
     submit = SubmitField("Submit")
 
 #  Create Form Class
@@ -93,6 +108,29 @@ class UserForm(FlaskForm):
     password_hash = PasswordField('Password', validators = [DataRequired(), EqualTo('password_hash2', message = 'Passwords must match')])
     password_hash2 = PasswordField('Confirm Password',validators=[DataRequired()])
     submit = SubmitField("Submit")
+
+# Create password test page
+@app.route('/test',methods=['GET','POST'])
+def test():
+    email = None
+    password = None
+    pw_check = None
+    passed = None
+    form = PasswordForm()
+    # Validate Form
+    if form.validate_on_submit():
+        email = form.email.data
+        password = form.password_hash.data
+
+        form.email.data = ''
+        form.password_hash.data = ''
+
+        pw_check = Users.query.filter_by(email=email).first()
+        # check password
+        passed = check_password_hash(pw_check.password_hash,password)
+        # flash("Form Submitted Successfully!!")
+        
+    return render_template("test.html",email = email,password = password, pw_check = pw_check,passed = passed,form = form)
 
 
 # Create name page
@@ -169,6 +207,7 @@ def delete(id):
     except:
         flash("Oops! Error!!!")
         return render_template("add.html",form = form,name = name, our_users = our_users)
+
 # Create String
 def __repr__(self):
     return '<Name %r>' %self.name

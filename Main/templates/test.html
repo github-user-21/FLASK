@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% for message in get_flashed_messages() %}
+<div class="alert alert-secondary" role="alert">
+    <strong>Hey {{name}} ,Form Submitted Successfully !</strong>
+</div>
+{%endfor%}
+
+{% if email %}
+<h1>Email : {{email}}!</h1>
+<h1>Password : {{password}}</h1>
+<br>
+<h2>Found this info :</h2>
+Name: {{pw_check.name}}
+<br>
+Email: {{pw_check.email}}
+<br>
+PW : {{pw_check.password_hash}}
+<br>
+Passed ? : {{ passed }}
+{% else %}
+<h1>What is your email?</h1>
+<br>
+
+<form method="POST">
+    {{form.hidden_tag() }}
+    <br>
+    {{form.email.label(class="form-label")}}
+    {{form.email(class="form-control")}}
+    <br>
+    <br>
+    {{form.password_hash.label(class="form-label")}}
+    {{form.password_hash(class="form-control")}}
+    <br>
+    {{form.submit(class="btn btn-secondary")}}
+</form>
+
+{%endif%}
+{% endblock %}
