@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% for message in get_flashed_messages() %}
+
+<div class="alert alert-secondary" role="alert">
+ {{message}}   
+</div>
+
+{%endfor%}
+
+<h1>Blog Posts</h1>
+<br>
+
+{% for post in posts %}
+<div class="shadow p-3 mb-5 bg-body-tertiary rounded">
+    <form method="POST">
+    <h2>{{ post.title }}</h2>
+    <br>
+    <small> <strong> By : {{ post.author }} </strong></small> 
+    <br>
+    
+    
+    Date : {{ post.date_posted }} | {{ post.slug }}
+    <br>
+    <br>
+    {{post.content}}
+    <br>
+    <br>
+    <a href="{{url_for('post',id = post.id)}}" class="btn btn-outline-info btn-small">View Post</a>
+    <br>
+    <hr>
+
+
+{%endfor%}
+
+
+{%endblock%}

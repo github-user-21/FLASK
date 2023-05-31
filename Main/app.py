@@ -2,6 +2,7 @@ from flask import Flask, render_template,flash,request
 from wtforms.validators import DataRequired, EqualTo, Length 
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField,PasswordField,BooleanField, ValidationError
+from wtforms.widgets import TextArea
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_migrate import Migrate
@@ -17,6 +18,16 @@ app.config['SECRET_KEY'] = "secretkey"
 # Initialize database
 db = SQLAlchemy(app)
 migrate = Migrate(app,db)
+
+# Create a Blog Post Model
+class Posts(db.Model):
+    id = db.Column(db.Integer,primary_key=True)
+    title = db.Column(db.String(255))
+    content = db.Column(db.Text)
+    author = db.Column(db.String(255))
+    date_posted = db.Column(db.DateTime,default = datetime.utcnow)
+    slug = db.Column(db.String(255))
+
 
 # Create Model
 class Users(db.Model):
@@ -108,6 +119,13 @@ class UserForm(FlaskForm):
     password_hash = PasswordField('Password', validators = [DataRequired(), EqualTo('password_hash2', message = 'Passwords must match')])
     password_hash2 = PasswordField('Confirm Password',validators=[DataRequired()])
     submit = SubmitField("Submit")
+
+class PostForm(FlaskForm):
+    title = StringField("TITLE",validators=[DataRequired()])
+    content = StringField("Content",validators=[DataRequired()], widget= TextArea())
+    author = StringField("Author",validators=[DataRequired()])
+    slug = StringField("Slug",validators=[DataRequired()])
+    submit = SubmitField("Submit",validators=[DataRequired()])
 
 # Create password test page
 @app.route('/test',methods=['GET','POST'])
@@ -207,6 +225,40 @@ def delete(id):
     except:
         flash("Oops! Error!!!")
         return render_template("add.html",form = form,name = name, our_users = our_users)
+
+@app.route('/add-post',methods = ['GET','POST'])
+def addpost():
+    form = PostForm()
+
+
+    if form.validate_on_submit():
+        post = Posts(title = form.title.data, content = form.content.data,slug = form.slug.data,author = form.author.data)
+        form.title.data = ''
+        form.author.data = ''
+        form.content.data = ''
+        form.slug.data = ''
+
+        db.session.add(post)
+        db.session.commit()
+
+        flash("Blog Post Submitted Succesfully")
+
+    # REDIRECT to webpage
+    return render_template("addpost.html",form=form)
+
+@app.route('/posts')
+def posts():
+    # Grab all posts from database
+    posts = Posts.query.order_by(Posts.date_posted)
+
+    return render_template("posts.html",posts = posts)
+
+@app.route('/posts/<int:id>')
+def post(id):
+    post = Posts.query.get_or_404(id)
+
+    return render_template("post.html",id = id,post = post)
+
 
 # Create String
 def __repr__(self):
