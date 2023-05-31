@@ -1,4 +1,4 @@
-from flask import Flask, render_template,flash,request
+from flask import Flask, render_template,flash,request,redirect,url_for
 from wtforms.validators import DataRequired, EqualTo, Length 
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField,PasswordField,BooleanField, ValidationError
@@ -258,6 +258,27 @@ def post(id):
     post = Posts.query.get_or_404(id)
 
     return render_template("post.html",id = id,post = post)
+
+@app.route('/posts/edit/<int:id>',methods = ['GET','POST'])
+def edit(id):
+    post = Posts.query.get_or_404(id)
+    form = PostForm()
+    if form.validate_on_submit():
+        post.title = form.title.data
+        post.author = form.author.data
+        post.slug = form.slug.data
+        post.content = form.content.data
+        # Update database
+        db.session.add(post)
+        db.session.commit()
+        flash("Post has been edited!")
+
+        return redirect(url_for('post',id = post.id))
+    form.title.data = post.title
+    form.author.data = post.author
+    form.slug.data = post.slug
+    form.content.data = post.content
+    return render_template('edit.html',form=form)
 
 
 # Create String
