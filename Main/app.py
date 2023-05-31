@@ -280,6 +280,21 @@ def edit(id):
     form.content.data = post.content
     return render_template('edit.html',form=form)
 
+@app.route('/posts/delete/<int:id>')
+def deletepost(id):
+    post_delete = Posts.query.get_or_404(id)
+
+    try:
+        db.session.delete(post_delete)
+        db.session.commit()
+        posts = Posts.query.order_by(Posts.date_posted)
+        flash("Posts Deleted Successfully !")
+        
+        return render_template("posts.html",posts = posts)
+    
+    except:
+        flash("Oops! Error!!!")
+        return render_template("posts.html",posts = posts)
 
 # Create String
 def __repr__(self):

@@ -27,6 +27,8 @@
         <hr>
 </div>
 
+<a href="{{url_for('edit',id = post.id)}}" class="btn btn-outline-info btn-small">Edit Post</a>
 <a href="{{url_for('posts')}}"class = "btn btn-outline-dark btn-small">Back to Blog</a>
+<a href="{{url_for('deletepost',id = post.id)}}"class = "btn btn-outline-danger btn-small">Delete Blog</a>
 
 {%endblock%}
