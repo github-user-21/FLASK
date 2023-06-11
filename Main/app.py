@@ -7,6 +7,8 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash,check_password_hash
+from flask_login import login_user, login_required, UserMixin, LoginManager, logout_user, current_user
+
 
 # Create a Flask Instance
 app = Flask(__name__)
@@ -19,6 +21,48 @@ app.config['SECRET_KEY'] = "secretkey"
 db = SQLAlchemy(app)
 migrate = Migrate(app,db)
 
+# Create Form Class
+class NameForm(FlaskForm):
+    name = StringField("Name",validators= [DataRequired()])
+    submit = SubmitField("Submit")
+
+class PasswordForm(FlaskForm):
+    email = StringField("What is your Email ?",validators= [DataRequired()])
+    password_hash = PasswordField("What is your Password ?",validators= [DataRequired()])
+    submit = SubmitField("Submit")
+
+#  Create Form Class
+class UserForm(FlaskForm):
+    username = StringField("Username",validators=[DataRequired()])
+    name = StringField("Name",validators= [DataRequired()])
+    email = StringField("Email",validators= [DataRequired()])
+    age = StringField("Age",validators=[DataRequired()])
+    password_hash = PasswordField('Password', validators = [DataRequired(), EqualTo('password_hash2', message = 'Passwords must match')])
+    password_hash2 = PasswordField('Confirm Password',validators=[DataRequired()])
+    submit = SubmitField("Submit")
+
+class PostForm(FlaskForm):
+    title = StringField("TITLE",validators=[DataRequired()])
+    content = StringField("Content",validators=[DataRequired()], widget= TextArea())
+    author = StringField("Author",validators=[DataRequired()])
+    slug = StringField("Slug",validators=[DataRequired()])
+    submit = SubmitField("Submit",validators=[DataRequired()])
+
+class LoginForm(FlaskForm):
+    username = StringField('Username',validators=[DataRequired()])
+    password = PasswordField('Password',validators=[DataRequired()])
+    submit = SubmitField('Submit')
+
+# Flask_Login Stuff
+login_manager = LoginManager(app)
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+
+def load_user(user_id):
+    return Users.query.get(int(user_id))
+
 # Create a Blog Post Model
 class Posts(db.Model):
     id = db.Column(db.Integer,primary_key=True)
@@ -30,8 +74,9 @@ class Posts(db.Model):
 
 
 # Create Model
-class Users(db.Model):
+class Users(db.Model, UserMixin):
     id = db.Column(db.Integer,primary_key = True)
+    username = db.Column(db.String(255),nullable = False, unique = True)
     name = db.Column(db.String(100),nullable = False)
     email = db.Column(db.String(100),nullable = False,unique = True)
     date_added = db.Column(db.DateTime,default = datetime.utcnow)
@@ -101,32 +146,6 @@ def api():
     return favorite_character
     # return 
 
-# Create Form Class
-class NameForm(FlaskForm):
-    name = StringField("Name",validators= [DataRequired()])
-    submit = SubmitField("Submit")
-
-class PasswordForm(FlaskForm):
-    email = StringField("What is your Email ?",validators= [DataRequired()])
-    password_hash = PasswordField("What is your Password ?",validators= [DataRequired()])
-    submit = SubmitField("Submit")
-
-#  Create Form Class
-class UserForm(FlaskForm):
-    name = StringField("Name",validators= [DataRequired()])
-    email = StringField("Email",validators= [DataRequired()])
-    age = StringField("Age",validators=[DataRequired()])
-    password_hash = PasswordField('Password', validators = [DataRequired(), EqualTo('password_hash2', message = 'Passwords must match')])
-    password_hash2 = PasswordField('Confirm Password',validators=[DataRequired()])
-    submit = SubmitField("Submit")
-
-class PostForm(FlaskForm):
-    title = StringField("TITLE",validators=[DataRequired()])
-    content = StringField("Content",validators=[DataRequired()], widget= TextArea())
-    author = StringField("Author",validators=[DataRequired()])
-    slug = StringField("Slug",validators=[DataRequired()])
-    submit = SubmitField("Submit",validators=[DataRequired()])
-
 # Create password test page
 @app.route('/test',methods=['GET','POST'])
 def test():
@@ -176,10 +195,11 @@ def add():
         if user is None:
             # Hash Password!
             hashed_pw = generate_password_hash(form.password_hash.data,"sha256")
-            user = Users(name = form.name.data,email = form.email.data,age=form.age.data, password_hash = hashed_pw)
+            user = Users(username = form.username.data, name = form.name.data,email = form.email.data,age=form.age.data, password_hash = hashed_pw)
             db.session.add(user)
             db.session.commit()
         name = form.name.data
+        form.username.data = ''
         form.name.data = ''
         form.email.data = ''
         form.age.data = ''
@@ -295,6 +315,41 @@ def deletepost(id):
     except:
         flash("Oops! Error!!!")
         return render_template("posts.html",posts = posts)
+
+# Create login page
+
+@app.route('/login', methods=["GET","POST"])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = Users.query.filter_by(username=form.username.data).first()
+        if user:
+            # Check Hash
+            if check_password_hash(user.password_hash, form.password.data):
+                login_user(user)
+                flash("Login Successful!")
+                return redirect(url_for('dashBoard'))
+            else:
+                flash("Incorrect Password!,Try Again")
+        else:
+            flash("User Doesn't Exist :(")
+
+    return render_template ('login.html',form = form)    
+    
+@app.route('/dashboard',methods = ['GET','POST'])
+@login_required
+def dashBoard():
+    form = LoginForm(slug="username")
+    return render_template('dashboard.html',form = form)
+
+@app.route('/logout', methods = ['GET','POST'])
+@login_required
+def logout():
+    logout_user()
+    flash("You have Successfully Logged out!")
+    return redirect(url_for('login'))
+
+
 
 # Create String
 def __repr__(self):
