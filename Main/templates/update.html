@@ -4,9 +4,9 @@
 
 {% for message in get_flashed_messages() %}
 <div class="alert alert-secondary" role="alert">
-    <strong> Hey {{name}} ,Form Submitted Successfully !</strong>
+    <strong>{{message}}</strong>
 </div>
-{{message}}
+
 {%endfor%}
 
 {% if name %}
@@ -26,6 +26,9 @@
 <div class="shadow p-3 mb-5 bg-body-tertiary rounded">
     <form method="POST">
         {{form.hidden_tag() }}
+        {{form.username.label(class="form-label")}}
+        {{form.username(class="form-control")}}
+        <br>
         {{form.name.label(class="form-label")}}
         {{form.name(class="form-control")}}
         <br>
