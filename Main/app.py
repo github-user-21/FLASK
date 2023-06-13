@@ -128,7 +128,7 @@ def add():
 
 # Update Database Record
 @app.route('/update/<int:id>',methods=['GET','POST'])
-
+@login_required
 def update(id):
     form = UserForm()
     name_update = Users.query.get_or_404(id)
@@ -173,9 +173,9 @@ def addpost():
 
 
     if form.validate_on_submit():
-        post = Posts(title = form.title.data, content = form.content.data,slug = form.slug.data,author = form.author.data)
+        poster = current_user.id
+        post = Posts(title = form.title.data, content = form.content.data,slug = form.slug.data,poster_id = poster)
         form.title.data = ''
-        form.author.data = ''
         form.content.data = ''
         form.slug.data = ''
 
@@ -194,7 +194,6 @@ def edit(id):
     form = PostForm()
     if form.validate_on_submit():
         post.title = form.title.data
-        post.author = form.author.data
         post.slug = form.slug.data
         post.content = form.content.data
         # Update database
@@ -203,27 +202,41 @@ def edit(id):
         flash("Post has been edited!")
 
         return redirect(url_for('post',id = post.id))
-    form.title.data = post.title
-    form.author.data = post.author
-    form.slug.data = post.slug
-    form.content.data = post.content
-    return render_template('edit.html',form=form)
-
+    
+    if current_user.id == post.poster_id:
+        form.title.data = post.title
+        form.slug.data = post.slug
+        form.content.data = post.content
+        return render_template('edit.html',form=form)
+    else:
+        flash("You are not authorised to edit this post")
+        posts = Posts.query.order_by(Posts.date_posted)
+        return render_template("posts.html",posts = posts)
+        
+       
 @app.route('/posts/delete/<int:id>')
+@login_required
 def deletepost(id):
     post_delete = Posts.query.get_or_404(id)
-
-    try:
-        db.session.delete(post_delete)
-        db.session.commit()
-        posts = Posts.query.order_by(Posts.date_posted)
-        flash("Posts Deleted Successfully !")
+    id = current_user.id
+    if id == post_delete.poster.id:
+        try:
+            db.session.delete(post_delete)
+            db.session.commit()
+            posts = Posts.query.order_by(Posts.date_posted)
+            flash("Post Deleted Successfully !")
+            
+            return render_template("posts.html",posts = posts)
         
+        except:
+            flash("Oops! Error!!!")
+            posts = Posts.query.order_by(Posts.date_posted)
+            return render_template("posts.html",posts = posts)
+    else:
+        flash("You are not authorised to delete this post!")
+        posts = Posts.query.order_by(Posts.date_posted)
         return render_template("posts.html",posts = posts)
-    
-    except:
-        flash("Oops! Error!!!")
-        return render_template("posts.html",posts = posts)
+        
 
 @app.route('/posts')
 def posts():
@@ -279,10 +292,14 @@ class Posts(db.Model):
     id = db.Column(db.Integer,primary_key=True)
     title = db.Column(db.String(255))
     content = db.Column(db.Text)
-    author = db.Column(db.String(255))
+    # author = db.Column(db.String(255))
     date_posted = db.Column(db.DateTime,default = datetime.utcnow)
     slug = db.Column(db.String(255))
+    # Foreign Key to Link Users(refer to primary id of user)
+    poster_id = db.Column(db.Integer,db.ForeignKey('users.id')) 
 
+
+ 
 
 # Create Model
 class Users(db.Model, UserMixin):
@@ -294,6 +311,8 @@ class Users(db.Model, UserMixin):
     age = db.Column(db.Integer)
     password_hash = db.Column(db.String(128))
     # password_hash2
+        # Users can have many Posts
+    posts = db.relationship("Posts", backref='poster')
 
     @property
     def password(self):

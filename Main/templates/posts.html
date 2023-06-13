@@ -18,7 +18,7 @@
     <form method="POST">
     <h2>{{ post.title }}</h2>
     <br>
-    <small> <strong> By : {{ post.author }} </strong></small> 
+    <small> <strong> By : {{ post.poster.name }} </strong></small> 
     <br>
     
     
@@ -28,11 +28,13 @@
     {{post.content}}
     <br>
     <br>
+   
     <a href="{{url_for('post',id = post.id)}}" class="btn btn-outline-info btn-small">View Post</a>
-    
+{% if post.poster_id == current_user.id %}
     <a href="{{url_for('edit',id = post.id)}}" class="btn btn-outline-info btn-small">Edit Post</a>
     <br>
     <hr>
+{%endif%}
 
 
 {%endfor%}
