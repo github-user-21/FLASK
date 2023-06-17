@@ -1,3 +1,4 @@
+
 {% extends 'base.html' %}
 
 {% block content %}
@@ -25,7 +26,7 @@
     Date : {{ post.date_posted }} | {{ post.slug }}
     <br>
     <br>
-    {{post.content}}
+    {{post.content|safe}}
     <br>
     <br>
    
@@ -33,9 +34,8 @@
 {% if post.poster_id == current_user.id %}
     <a href="{{url_for('edit',id = post.id)}}" class="btn btn-outline-info btn-small">Edit Post</a>
     <br>
-    <hr>
-{%endif%}
 
+{%endif%}
 
 {%endfor%}
 

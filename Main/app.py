@@ -8,10 +8,14 @@ from datetime import datetime
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash,check_password_hash
 from flask_login import login_user, login_required, UserMixin, LoginManager, logout_user, current_user
-from webforms import LoginForm,PostForm,UserForm,PasswordForm,NameForm
+from webforms import LoginForm,PostForm,UserForm,PasswordForm,NameForm,SearchForm
+from flask_ckeditor import CKEditor
 
 # Create a Flask Instance
 app = Flask(__name__)
+
+# CKEditor ::
+ckeditor = CKEditor(app)
 
 # ADD Database
 app.config['SQLALCHEMY_DATABASE_URI']= 'mysql+pymysql://root:password=aditya@localhost/users'
@@ -41,6 +45,16 @@ def api():
     }
     return favorite_character
 
+# Create Admin Page
+@app.route("/admin")
+@login_required
+def admin():
+    id = current_user.id
+    if id == 27:
+        return render_template('admin.html')
+    else:
+        flash("You must be Admin to access this page")
+        return render_template("dashboard.html")
 @app.route('/dashboard',methods = ['GET','POST'])
 @login_required
 def dashBoard():
@@ -137,7 +151,7 @@ def update(id):
         name_update.name = request.form['name']
         name_update.email = request.form['email']
         name_update.age = request.form['age']
-       
+        name_update.about_author = request.form["about_author"]
         try:
             db.session.commit()
             flash("User Updated Successfully!")
@@ -251,7 +265,25 @@ def post(id):
 
     return render_template("post.html",id = id,post = post)
 
+# Pass Stuff to Navbar
+@app.context_processor
+def base():
+    form = SearchForm()
+    return dict(form = form)
 
+
+@app.route("/search",methods=['POST'])
+def search():
+    form = SearchForm()
+    # Get data from form
+    posts = Posts.query
+    if form.validate_on_submit():
+        post.searched = form.searched.data
+        # Query Database
+        posts = posts.filter(Posts.content.like('%'+post.searched+'%'))
+        posts = posts.order_by(Posts.date_posted).all()
+        return render_template('search.html',form = form, searched = post.searched, posts = posts)
+    
 @app.route('/test',methods=['GET','POST'])
 def test():
     email = None
@@ -309,6 +341,7 @@ class Users(db.Model, UserMixin):
     email = db.Column(db.String(100),nullable = False,unique = True)
     date_added = db.Column(db.DateTime,default = datetime.utcnow)
     age = db.Column(db.Integer)
+    about_author = db.Column(db.Text(255), nullable = True)
     password_hash = db.Column(db.String(128))
     # password_hash2
         # Users can have many Posts

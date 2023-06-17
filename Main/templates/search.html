@@ -1,0 +1,38 @@
+{%extends 'base.html' %}
+
+{% block content %}
+
+<br>
+<h2>Search results for Query: <em>{{searched}}</em></h2>
+
+<br>
+<br>
+
+{% if posts %}
+
+    {% for post in posts %}
+    <div class="shadow p-3 mb-5 bg-body-tertiary rounded">
+        <form method="POST">
+            <h2>{{ post.title }}</h2>
+            <br>
+            <small> <strong> By : {{ post.poster.name }} </strong></small>
+            <br>
+
+
+            Date : {{ post.date_posted }} | {{ post.slug }}
+            <br>
+            <br>
+            {{post.content|safe}}
+            <br>
+            <hr>
+    </div>
+        <br>
+
+    {%endfor%}
+
+{%else%}
+    Sorry, Your Search Result <strong>{{ searched }}</strong> did not return anything
+
+
+{%endif%}
+{% endblock %}
