@@ -10,6 +10,10 @@ from werkzeug.security import generate_password_hash,check_password_hash
 from flask_login import login_user, login_required, UserMixin, LoginManager, logout_user, current_user
 from webforms import LoginForm,PostForm,UserForm,PasswordForm,NameForm,SearchForm
 from flask_ckeditor import CKEditor
+from werkzeug.utils import secure_filename
+import uuid as uuid
+import os
+
 
 # Create a Flask Instance
 app = Flask(__name__)
@@ -20,6 +24,11 @@ ckeditor = CKEditor(app)
 # ADD Database
 app.config['SQLALCHEMY_DATABASE_URI']= 'mysql+pymysql://root:password=aditya@localhost/users'
 app.config['SECRET_KEY'] = "secretkey"
+
+
+UPLOAD_FOLDER = 'static/images/'
+ALLOWED_EXTENSIONS = ["jpg", "png", "pdf", "jpeg"]
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Initialize database
 db = SQLAlchemy(app)
@@ -152,8 +161,20 @@ def update(id):
         name_update.email = request.form['email']
         name_update.age = request.form['age']
         name_update.about_author = request.form["about_author"]
+        name_update.profile_pic = request.files['profile_pic']
+        # Grab Image Name
+        pic_filename = secure_filename(name_update.profile_pic.filename)
+        # Set UUID
+        pic_name = str(uuid.uuid1()) + "_" + pic_filename
+        # Save that image
+        saver = request.files['profile_pic']
+        saver.save(os.path.join(app.config['UPLOAD_FOLDER']),pic_name)
+        # Change it to string to save to db
+        name_update.profile_pic = pic_name
+
         try:
             db.session.commit()
+            saver.save(os.path.join(app.config['UPLOAD_FOLDER'],pic_name))
             flash("User Updated Successfully!")
             return render_template("update.html",form = form,name_update = name_update,id = id)
         except:
@@ -342,6 +363,7 @@ class Users(db.Model, UserMixin):
     date_added = db.Column(db.DateTime,default = datetime.utcnow)
     age = db.Column(db.Integer)
     about_author = db.Column(db.Text(255), nullable = True)
+    profile_pic = db.Column(db.String(255),nullable = True)
     password_hash = db.Column(db.String(128))
     # password_hash2
         # Users can have many Posts

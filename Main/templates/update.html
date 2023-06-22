@@ -15,22 +15,30 @@
     <br><br>
 
     <div class="shadow p-3 mb-5 bg-body-tertiary rounded">
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             {{form.hidden_tag() }}
             {{form.username.label(class="form-label")}}
-            {{form.username(class="form-control")}}
+            {{form.username(class="form-control",value = name_update.username)}}
+            
             <br>
             {{form.name.label(class="form-label")}}
-            {{form.name(class="form-control")}}
+            {{form.name(class="form-control",value = name_update.name)}}
+            
             <br>
             {{form.email.label(class="form-label")}}
-            {{form.email(class="form-control")}}
+            {{form.email(class="form-control",value = name_update.email)}}
+            
             <br>
             {{form.age.label(class="form-label")}}
-            {{form.age(class="form-control")}}
+            {{form.age(class="form-control",value = name_update.age)}}
+            
             <br>
             {{form.about_author.label(class="form-label")}}
-            {{form.about_author(class="form-control")}}
+            <textarea name="about_author" class="form-control">{{name_update.about_author}}</textarea>
+            <br>
+            {{form.profile_pic.label(class="form-label")}}
+            {{form.profile_pic(class="form-control",value = name_update.profile_pic)}}
+            
             <br>
             {{form.submit(class="btn btn-secondary")}}
 
